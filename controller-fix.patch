@@ -1,0 +1,68 @@
+diff --git a/android/AndroidManifest.xml b/android/AndroidManifest.xml
+index a073d82..bb19b16 100644
+--- a/android/AndroidManifest.xml
++++ b/android/AndroidManifest.xml
+@@ -62,7 +62,7 @@
+ 
+                 <category android:name="android.intent.category.LAUNCHER" />
+                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+-                <category android:name="tv.ouya.intent.category.GAME"/>
++                <!-- OUYA community change, 2026-11-15: ordinary launcher entry for MAKE / Software. -->
+             </intent-filter>
+             <intent-filter>
+ 				<action android:name="android.intent.action.VIEW" />
+diff --git a/android/jni/app-android.cpp b/android/jni/app-android.cpp
+index 9fc3faf..7ab4727 100644
+--- a/android/jni/app-android.cpp
++++ b/android/jni/app-android.cpp
+@@ -12,6 +12,7 @@
+ #include <mutex>
+ #include <thread>
+ #include <atomic>
++#include <vector>
+ 
+ #ifndef _MSC_VER
+ 
+@@ -1268,16 +1269,26 @@ extern "C" jboolean Java_org_ppsspp_ppsspp_NativeApp_keyUp(JNIEnv *, jclass, jin
+ 	return NativeKey(keyInput);
+ }
+ 
++// OUYA community modification, 2026-11-15: avoid unreleased JNI array pins
++// on Dalvik; copy axis arrays and validate inputs. See controller-fix.patch.
+ extern "C" void Java_org_ppsspp_ppsspp_NativeApp_joystickAxis(
+ 		JNIEnv *env, jclass, jint deviceId, jintArray axisIds, jfloatArray values, jint count) {
+-	if (!renderer_inited)
++	if (!renderer_inited || !axisIds || !values || count <= 0)
++		return;
++	if (count > env->GetArrayLength(axisIds) || count > env->GetArrayLength(values))
+ 		return;
+ 
+-	AxisInput *axis = new AxisInput[count];
+-	_dbg_assert_(count <= env->GetArrayLength(axisIds));
+-	_dbg_assert_(count <= env->GetArrayLength(values));
+-	jint *axisIdBuffer = env->GetIntArrayElements(axisIds, NULL);
+-	jfloat *valueBuffer = env->GetFloatArrayElements(values, NULL);
++	// Region copies avoid pinning Java arrays. On Dalvik, unreleased array
++	// elements exhaust the 1024-entry pinned-reference table during play.
++	std::vector<jint> axisIdBuffer(count);
++	std::vector<jfloat> valueBuffer(count);
++	env->GetIntArrayRegion(axisIds, 0, count, axisIdBuffer.data());
++	if (env->ExceptionCheck())
++		return;
++	env->GetFloatArrayRegion(values, 0, count, valueBuffer.data());
++	if (env->ExceptionCheck())
++		return;
++	std::vector<AxisInput> axis(count);
+ 
+ 	// These are dirty-filtered on the Java side.
+ 	for (int i = 0; i < count; i++) {
+@@ -1285,8 +1296,7 @@ extern "C" void Java_org_ppsspp_ppsspp_NativeApp_joystickAxis(
+ 		axis[i].axisId = (InputAxis)(int)axisIdBuffer[i];
+ 		axis[i].value = valueBuffer[i];
+ 	}
+-	NativeAxis(axis, count);
+-	delete[] axis;
++	NativeAxis(axis.data(), count);
+ }
+ 
+ extern "C" jboolean Java_org_ppsspp_ppsspp_NativeApp_mouseWheelEvent(

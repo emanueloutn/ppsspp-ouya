@@ -1,0 +1,22 @@
+{
+  "name": "PPSSPP para OUYA (unofficial)",
+  "release": "1.17-ouya.1",
+  "date": "2026-11-15",
+  "upstream": "https://github.com/hrydgard/ppsspp",
+  "upstream_tag": "v1.17",
+  "upstream_commit": "493122a2fcf9ff538e242fe2844f019b53afd483",
+  "upstream_authors": "Henrik Rydgård and PPSSPP contributors",
+  "maintainer": "emanueloutn",
+  "license": "GPL-2.0-or-later",
+  "native_change": "JNI axis array region copies, input validation; explicit vector include",
+  "abi": "armeabi-v7a",
+  "android_min_api": 16,
+  "ndk": "r21e",
+  "cmake": "3.31.6",
+  "container_base_apk_sha256": "66a9e3420af80e30a96889ce79891998356cc8cf91de2e5ff6acbca78ae14d16",
+  "tested_native_sha256": "32069b77c56224c6449e27771e19b8d6cd74b397026a1007f1f2e4874f90c724",
+  "performance_claim": "Documented tested settings; no guaranteed FPS improvement",
+  "test_result": "20000 synthetic calls of corrected joystickAxis function on an OUYA Android 4.1.2, plus game launch and user feedback; not a controlled performance benchmark",
+  "launcher": "MAKE / Software / OUYA17 / LAUNCH; verified on device after removing OUYA GAME category",
+  "apk_sha256": "0d3adf19390dc81b74e944a107bc674b64f27829118361622e7a8065384e82bd"
+}
